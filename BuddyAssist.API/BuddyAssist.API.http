@@ -1,0 +1,6 @@
+@BuddyAssist.API_HostAddress = http://localhost:5108
+
+GET {{BuddyAssist.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
