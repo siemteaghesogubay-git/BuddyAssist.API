@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -19,3 +20,4 @@
 		<PackageReference Include="SendGrid" Version="9.29.3" />
 	</ItemGroup>
 </Project>
+
