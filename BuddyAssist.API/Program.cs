@@ -13,12 +13,45 @@ builder.Services.AddOpenApi();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSignalR();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    )
-);
+// ── DATABAS ───────────────────────────────────
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+var mysqlUrl = Environment.GetEnvironmentVariable("MYSQL_URL") ?? "";
 
+if (!string.IsNullOrEmpty(mysqlUrl))
+{
+    // Railway MySQL – konvertera URL till connection string
+    var uri = new Uri(mysqlUrl);
+    var userInfo = uri.UserInfo.Split(':');
+    var host = uri.Host;
+    var port = uri.Port;
+    var database = uri.AbsolutePath.TrimStart('/');
+    var user = userInfo[0];
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+    var mysqlConn = $"Server={host};Port={port};Database={database};User={user};Password={password};";
+    Console.WriteLine($"🔗 Ansluter till MySQL: {host}:{port}/{database}");
+
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseMySql(mysqlConn, ServerVersion.AutoDetect(mysqlConn))
+    );
+}
+else if (!string.IsNullOrEmpty(connectionString))
+{
+    // Lokal SQL Server
+    Console.WriteLine("🔗 Ansluter till SQL Server (lokalt)");
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseSqlServer(connectionString)
+    );
+}
+else
+{
+    Console.WriteLine("⚠️ Ingen databas konfigurerad!");
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseSqlServer("")
+    );
+}
+
+// ── CORS ──────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -34,7 +67,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// JWT – alltid registrerad
+// ── JWT ───────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "FallbackKey_MinLength_32_Chars!!";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -74,7 +107,7 @@ builder.Services.AddAuthorizationBuilder()
 
 var app = builder.Build();
 
-// Kör migrationer automatiskt vid startup
+// ── MIGRATIONER ───────────────────────────────
 try
 {
     using var scope = app.Services.CreateScope();
